@@ -6,6 +6,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -32,6 +33,10 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MapsActivity extends FragmentActivity {
 
@@ -42,6 +47,9 @@ public class MapsActivity extends FragmentActivity {
     private URL url;
     private LocationManager lm;
     private double lat, lng;
+    private Timer timer;
+    private TimerTask task;
+    private HashMap<String,Marker> markers;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +57,15 @@ public class MapsActivity extends FragmentActivity {
 
         setContentView(R.layout.activity_maps);
         setUpMapIfNeeded();
+        markers = new HashMap<String, Marker>();
+        timer = new Timer();
+        task = new TimerTask() {
+            @Override
+            public void run() {
+                System.out.println("fuck");
+                new Requesttask(mMap, markers).execute("http://180.183.52.23:8080/busesposition");
+            }
+        };
         try {
             setClient();
         } catch (IOException e) {
@@ -62,8 +79,8 @@ public class MapsActivity extends FragmentActivity {
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
+        timer.schedule(task,0,15000);
 
-        new Requesttask(mMap).execute("http://158.108.238.87:8080/busesposition");
 
 
     }

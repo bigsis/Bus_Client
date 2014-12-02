@@ -3,7 +3,10 @@ package com.example.earth.testgooglemap;
 import android.os.AsyncTask;
 
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.apache.http.HttpResponse;
@@ -17,6 +20,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -24,9 +28,11 @@ import java.util.List;
  */
 public class Requesttask extends AsyncTask<String, String, String> {
     private GoogleMap mMap;
+    private HashMap<String, Marker> markers;
 
-    public Requesttask(GoogleMap mMap){
+    public Requesttask(GoogleMap mMap, HashMap<String, Marker> markers) {
         this.mMap = mMap;
+        this.markers = markers;
     }
 
     @Override
@@ -37,12 +43,12 @@ public class Requesttask extends AsyncTask<String, String, String> {
         try {
             response = httpclient.execute(new HttpGet(uri[0]));
             StatusLine statusLine = response.getStatusLine();
-            if(statusLine.getStatusCode() == HttpStatus.SC_OK){
+            if (statusLine.getStatusCode() == HttpStatus.SC_OK) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 response.getEntity().writeTo(out);
                 out.close();
                 responseString = out.toString();
-            } else{
+            } else {
                 //Closes the connection.
                 response.getEntity().getContent().close();
                 throw new IOException(statusLine.getReasonPhrase());
@@ -64,14 +70,12 @@ public class Requesttask extends AsyncTask<String, String, String> {
 //        System.out.println(parseXmlToBus(result).toString());
     }
 
-    public static List<Bus> parseXmlToBus(String inputXml)
-    {
+    public static List<Bus> parseXmlToBus(String inputXml) {
         inputXml = inputXml.replace("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>", "");
         inputXml = inputXml.replace("<buses>", "").replace("</buses>", "");
         String[] temp = inputXml.split("</bus>");
         List<Bus> busList = new ArrayList<Bus>();
-        for (int i=0; i<temp.length; i++)
-        {
+        for (int i = 0; i < temp.length; i++) {
             Bus bus = new Bus();
             String[] temp2 = temp[i].split(">");
             bus.setId(Long.parseLong(temp2[0].split("\"")[1]));
@@ -84,19 +88,54 @@ public class Requesttask extends AsyncTask<String, String, String> {
         return busList;
     }
 
-    public void setBusLocation(List<Bus> buses){
-
-        for(Bus b : buses){
-            if(b != null) {
+    public void setBusLocation(List<Bus> buses) {
+        System.out.println(buses.toString());
+        if (markers.size() == 0) {
+            for (Bus b : buses) {
                 MarkerOptions mo = new MarkerOptions();
-                mo.title(b.getBusLineID()+"");
+                mo.title(b.getId() + "");
+                mo.snippet(b.getBusLineID() + "");
+                mo.icon(getBusIcon(b.getBusLineID()));
                 mo.visible(true);
-                mMap.addMarker(mo.position(new LatLng(b.getLat(), b.getLon())));
+                markers.put(b.getId() + "", mMap.addMarker(mo.position(new LatLng(b.getLat(), b.getLon()))));
             }
-
+        } else {
+            for (Bus b : buses) {
+//                    System.out.println(buses.toString());
+                if (markers.containsKey(b.getId() + "")) {
+                    markers.get(b.getId() + "").setPosition(new LatLng(b.getLat(), b.getLon()));
+                    System.out.println("equal");
+//                    break;
+                } else {
+                    MarkerOptions mo = new MarkerOptions();
+                    mo.title(b.getId() + "");
+                    mo.snippet(b.getBusLineID() + "");
+                    mo.icon(getBusIcon(b.getBusLineID()));
+                    mo.visible(true);
+                    markers.put(b.getId() + "", mMap.addMarker(mo.position(new LatLng(b.getLat(), b.getLon()))));
+                }
+            }
         }
+    }
 
-
+    public BitmapDescriptor getBusIcon(long id){
+        BitmapDescriptor bd = null;
+        if( id == 1){
+            bd = BitmapDescriptorFactory.fromResource(R.drawable.bus1);
+        }
+        else if( id == 2){
+            bd = BitmapDescriptorFactory.fromResource(R.drawable.bus2);
+        }
+        else if( id == 3){
+            bd = BitmapDescriptorFactory.fromResource(R.drawable.bus3);
+        }
+        else if( id == 4){
+            bd = BitmapDescriptorFactory.fromResource(R.drawable.bus4);
+        }
+        else if( id == 5){
+            bd = BitmapDescriptorFactory.fromResource(R.drawable.bus5);
+        }
+        return bd;
     }
 
 }
