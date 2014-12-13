@@ -4,39 +4,29 @@ import android.content.Context;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import de.tavendo.autobahn.WebSocketConnection;
+import de.tavendo.autobahn.WebSocketException;
+import de.tavendo.autobahn.WebSocketHandler;
+
 
 public class MapsActivity extends FragmentActivity {
 
@@ -50,35 +40,59 @@ public class MapsActivity extends FragmentActivity {
     private Timer timer;
     private TimerTask task;
     private HashMap<String,Marker> markers;
+    private WebSocketConnection wsc = new WebSocketConnection();
+    private ParseBusXml pbx;
+    private MarkerController mc;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        pbx = ParseBusXml.getInstance();
         setContentView(R.layout.activity_maps);
         setUpMapIfNeeded();
         markers = new HashMap<String, Marker>();
-        timer = new Timer();
-        task = new TimerTask() {
-            @Override
-            public void run() {
-                System.out.println("fuck");
-                new Requesttask(mMap, markers).execute("http://180.183.52.23:8080/busesposition");
-            }
-        };
+        mc = MarkerController.getInstance(mMap, markers);
+        final String wsuri= "ws://158.108.141.84:8080";
         try {
-            setClient();
-        } catch (IOException e) {
+            wsc.connect(wsuri, new WebSocketHandler(){
+                @Override
+                public void onOpen() {
+
+                    wsc.sendTextMessage("Hello, world!");
+                }
+
+                @Override
+                public void onTextMessage(String payload) {
+//                    Toast.makeText(getApplicationContext(), payload, Toast.LENGTH_LONG).show();
+                    mc.setBusLocation(pbx.parseXmlToBusWebSoc(payload));
+                }
+
+                @Override
+                public void onClose(int code, String reason) {
+//                    Log.d(TAG, "Connection lost.");
+                }
+            });
+        } catch (WebSocketException e) {
+            System.out.println(e);
             e.printStackTrace();
         }
+//        timer = new Timer();
+//        task = new TimerTask() {
+//            @Override
+//            public void run() {
+//                System.out.println("fuck");
+//                new Requesttask(mMap, markers).execute("http://180.183.52.23:8080/busesposition");
+//            }
+//        };
+//        try {
+//            setClient();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
     }
 
     protected  void setClient() throws IOException {
-        try {
-            url = new URL("http://www.google.com");
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
+
         timer.schedule(task,0,15000);
 
 

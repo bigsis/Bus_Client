@@ -1,7 +1,5 @@
 package com.example.earth.testgooglemap;
 
-import com.google.android.gms.maps.model.MarkerOptions;
-
 /**
  * Created by EARTH on 26/11/2557.
  */
